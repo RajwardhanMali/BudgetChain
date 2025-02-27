@@ -1,8 +1,9 @@
+use serde::Serialize;
 use sha2::{Sha256, Digest};
 use chrono::Utc;
 use crate::transaction::Transaction;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,Serialize)]
 pub struct Block {
     pub index: u64,
     pub timestamp: u128,

@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+use serde::Serialize;
+
+#[derive(Debug, Clone,Serialize)]
 pub struct Wallet {
     pub address: String,
-    pub balance: u64,
+    balance: u64,
 }
 
 impl Wallet {
@@ -14,9 +16,9 @@ impl Wallet {
         }
     }
 
-    // pub fn check_balance(&self) -> u64 {
-    //     self.balance
-    // }
+    pub fn check_balance(&self) -> u64 {
+        self.balance
+    }
 
     pub fn send_funds(&mut self, amount: u64) -> bool {
         if self.balance < amount {
@@ -34,7 +36,7 @@ impl Wallet {
 
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,Serialize)]
 pub struct WalletManager {
     pub wallets: HashMap<String, Wallet>,
 }
@@ -73,4 +75,14 @@ impl WalletManager {
         self.wallets.insert(address.to_string(), Wallet::new(address, initial_balance));
     }
 
+    pub fn get_wallet(&mut self, address: &str) -> &Wallet{
+        return self.wallets.get(address).unwrap();
+    }
+
+    pub fn get_balance(&mut self, address: &str)-> u64{
+
+        let wallet = self.get_wallet(address);
+
+        return wallet.check_balance()
+    }
 }

@@ -1,7 +1,8 @@
+use serde::Serialize;
 use sha2::{Sha256, Digest};
 use chrono::Utc;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone,Serialize)]
 pub struct Transaction {
     pub tx_id: String,
     pub sender: String,

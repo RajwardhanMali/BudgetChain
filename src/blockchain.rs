@@ -1,14 +1,15 @@
 use std::collections::HashMap;
+use serde::Serialize;
+
 use crate::block::Block;
 use crate::transaction::Transaction;
 use crate::validators::Validators;
 use crate::wallet::WalletManager;
 
-#[derive(Debug)]
+#[derive(Debug,Clone,Serialize)]
 pub struct Blockchain {
-    main_chain: Vec<Block>,
-    branches: HashMap<String, Vec<Block>>,
-    balances: HashMap<String, u64>,
+    pub main_chain: Vec<Block>,
+    pub branches: HashMap<String, Vec<Block>>,
     pub validators: Validators,
     pub wallet_manager: WalletManager, 
 }
@@ -24,27 +25,26 @@ impl Blockchain {
         Self {
             main_chain,
             branches: HashMap::new(),
-            balances: HashMap::new(),
             validators,
             wallet_manager
         }        
     }
 
-    pub fn add_transaction(&mut self, sender: &str, receiver: &str, amount: u64) {
+    pub fn add_transaction(&mut self, sender: &str, receiver: &str, amount: u64) -> bool{
         
         if !self.wallet_manager.wallets.contains_key(sender) || !self.wallet_manager.wallets.contains_key(receiver) {
             println!("Transaction failed: Sender or receiver does not have a valid wallet.");
-            return;
+            return false;
         }
     
         if sender == "Govt" && !self.validators.contains(receiver) {
             println!("Transaction failed: {} is not an approved validator!", receiver);
-            return;
+            return false;
         }
     
         if !self.wallet_manager.send_funds(sender, receiver, amount) {
             println!("Transaction failed: Insufficient funds.");
-            return;
+            return false;
         }
     
         let tx = Transaction::new(sender, receiver, amount);
@@ -54,10 +54,12 @@ impl Blockchain {
     
         if sender == "CentralGov" {
             self.create_branch(receiver, new_block.clone());
-            print!("Branch Created for {}",receiver);
+            println!("Branch Created for {}",receiver);
         }
     
         println!("Transaction successful: {} -> {} | {} coins", sender, receiver, amount);
+
+        return true;
     }
     
 
@@ -65,19 +67,18 @@ impl Blockchain {
     pub fn create_branch(&mut self, department_id: &str, genesis_block: Block) {
         let branch_id = format!("BRANCH-{}", department_id);
         self.branches.insert(branch_id.clone(), vec![genesis_block.clone()]);
-        *self.balances.entry(department_id.to_string()).or_insert(0) += genesis_block.transactions[0].amount;
     }
 
-    pub fn add_branch_transaction(&mut self, department_id: &str, receiver: &str, amount: u64) {
+    pub fn add_branch_transaction(&mut self, department_id: &str, receiver: &str, amount: u64) -> bool{
 
         if !self.wallet_manager.wallets.contains_key(department_id) || !self.wallet_manager.wallets.contains_key(receiver) {
             println!("Transaction failed: Sender or receiver does not have a valid wallet.");
-            return;
+            return false;
         }
         
         if !self.validators.contains(department_id) {
             println!("Transaction failed: {} is not a validator and cannot process transactions.", department_id);
-            return;
+            return false;
         }
 
         let branch_id = format!("BRANCH-{}", department_id);
@@ -86,16 +87,17 @@ impl Blockchain {
 
             if !self.wallet_manager.send_funds(department_id, receiver, amount) {
                 println!("Transaction failed: Insufficient funds.");
-                return;
+                return false;
             }
 
             let tx = Transaction::new(department_id, receiver, amount);
             let last_block = branch.last().unwrap();
             let new_block = Block::new(last_block.index + 1, &last_block.hash, &branch_id, vec![tx.clone()]);
             branch.push(new_block);
-            *self.balances.entry(receiver.to_string()).or_insert(0) += amount;
+            return true;
         } else {
             println!("Branch {} not found.", department_id);
+            return false;
         }
     }
 

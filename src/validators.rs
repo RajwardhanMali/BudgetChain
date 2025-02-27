@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-#[derive(Debug)]
+use serde::Serialize;
+
+#[derive(Debug,Clone,Serialize)]
 pub struct Validators {
     pub validators: HashSet<String>,
     pub pending_requests: HashMap<String, HashSet<String>>,

@@ -5,6 +5,7 @@ mod validators;
 mod wallet;
 
 use blockchain::Blockchain;
+use tower_http::cors::{CorsLayer, Any};
 use serde::Deserialize;
 use std::sync::{Arc, Mutex};
 use tokio::net::TcpListener;
@@ -20,22 +21,29 @@ struct AppState {
 
 #[tokio::main]
 async fn main() {
-    
     let blockchain = Blockchain::new();
     let shared_state = Arc::new(Mutex::new(blockchain));
-    
+
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+
     let app = Router::new()
         .route("/blockchain", get(get_blockchain))
         .route("/transaction", post(add_transaction))
-        .route("/wallet/:address", get(get_wallet_balance))
-        .route("/create-wallet/:name/:balance", post(create_wallet))
+        .route("/create-wallet/:name/:password", post(create_wallet))
         .route("/request-validator/:name", post(request_validator))
         .route("/vote-for-validator/:voter/:candidate", post(vote_for_validator))
         .route("/branch-transaction", post(add_branch_transaction))
         .route("/display-chain", get(display_chain))
         .route("/validators", get(get_validators))
-        .with_state(AppState { blockchain: shared_state });
-    
+        .route("/wallet/:address/:password", get(get_wallet))
+        .route("/balance/:address/:password", get(get_balance))
+        .route("/pending-requests", get(get_pending_requests))
+        .with_state(AppState { blockchain: shared_state })
+        .layer(cors);
+
     let listener = TcpListener::bind("0.0.0.0:8000").await.unwrap();
     println!("🚀 Server running on http://localhost:8000");
     axum::serve(listener, app).await.unwrap();
@@ -68,26 +76,23 @@ async fn add_transaction(
        
 }
 
-async fn get_wallet_balance(
-    State(state): State<AppState>,
-    axum::extract::Path(address): axum::extract::Path<String>,
-) -> Json<serde_json::Value> {
-    let mut blockchain = state.blockchain.lock().unwrap();
-    let balance = blockchain.wallet_manager.get_wallet(&address);
-    Json(serde_json::json!({ "balance": balance }))
-}
-
 async fn create_wallet(
     State(state): State<AppState>,
-    axum::extract::Path((name, balance)): axum::extract::Path<(String, u64)>,
+    axum::extract::Path((name, password)): axum::extract::Path<(String,String)>,
 ) -> Json<serde_json::Value> {
     let mut blockchain = state.blockchain.lock().unwrap();
-    blockchain.wallet_manager.create_wallet(&name, balance);
-    Json(serde_json::json!({
-        "status": "Wallet created successfully",
-        "name": name,
-        "balance": balance
-    }))
+
+    if blockchain.wallet_manager.wallets.contains_key(&name){
+        return Json(serde_json::json!({"status": 401}))
+    } else {
+        blockchain.wallet_manager.create_wallet(&name, &password,0);
+            Json(serde_json::json!({
+                "status": 200,
+                "name": name,
+                "balance": 0,
+            }))
+    }
+
 }
 
 async fn request_validator(
@@ -114,7 +119,6 @@ async fn vote_for_validator(
         "candidate": candidate
     }))
 }
-
 #[derive(Deserialize)]
 struct BranchTransactionRequest {
     branch: String,
@@ -148,7 +152,7 @@ async fn display_chain(
     let blockchain = state.blockchain.lock().unwrap();
 
     let main_chain = serde_json::to_value(&blockchain.main_chain).unwrap();
-    let branches = serde_json::to_value(&blockchain.branches).unwrap(); // Serialize branches
+    let branches = serde_json::to_value(&blockchain.branches).unwrap();
 
     Json(serde_json::json!({
         "main_chain": main_chain,
@@ -163,6 +167,49 @@ async fn get_validators(
 ) -> Json<serde_json::Value> {
     let blockchain = state.blockchain.lock().unwrap();
     Json(serde_json::to_value(&blockchain.validators).unwrap())
+}
+
+async fn get_wallet(
+    State(state): State<AppState>,
+    axum::extract::Path((address, password)): axum::extract::Path<(String, String)>,
+) -> Json<serde_json::Value> {
+    let mut blockchain = state.blockchain.lock().unwrap();
+    if let Some(wallet) = blockchain.wallet_manager.get_wallet(&address, &password) {
+        Json(serde_json::json!({
+            "status": 200,
+            "address": address,
+            "balance": wallet.check_balance(),
+            "password": wallet.get_pass(),
+        }))
+    } else {
+        Json(serde_json::json!({"status": 401}))
+    }
+}
+
+async fn get_balance(
+    State(state): State<AppState>,
+    axum::extract::Path((address, password)): axum::extract::Path<(String, String)>,
+) -> Json<serde_json::Value> {
+    let mut blockchain = state.blockchain.lock().unwrap_or_else(|poisoned| {
+        eprintln!("Mutex poisoned! Recovering from error.");
+        poisoned.into_inner() // Recover the inner data even if the mutex was poisoned
+    });
+    let balance = blockchain.wallet_manager.get_balance(&address, &password);
+    Json(serde_json::json!({
+        "status": "Balance retrieved",
+        "address": address,
+        "balance": balance,
+    }))
+}
+
+async fn get_pending_requests(
+    State(state): State<AppState>
+) -> Json<serde_json::Value> {
+    let blockchain = state.blockchain.lock().unwrap();
+    let pending_requests = blockchain.validators.get_pending_request();
+    Json(serde_json::json!({
+        "pending_requests": pending_requests
+    }))
 }
 
 // Commented code left as is

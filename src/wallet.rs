@@ -6,18 +6,28 @@ use serde::Serialize;
 pub struct Wallet {
     pub address: String,
     balance: u64,
+    password: String
 }
 
 impl Wallet {
-    pub fn new(address: &str, initial_balance: u64) -> Self {
+    pub fn new(address: &str,password: &str, initial_balance: u64) -> Self {
         Self {
             address: address.to_string(),
             balance: initial_balance,
+            password: password.to_string(),
         }
     }
 
     pub fn check_balance(&self) -> u64 {
         self.balance
+    }
+
+    pub fn get_pass(&self) -> String{
+        self.password.to_string()
+    }
+
+    pub fn authenticate(&self, password: &str) -> bool {
+        self.password == password
     }
 
     pub fn send_funds(&mut self, amount: u64) -> bool {
@@ -71,18 +81,30 @@ impl WalletManager {
         return true;
     }
 
-    pub fn create_wallet(&mut self, address: &str, initial_balance: u64) {
-        self.wallets.insert(address.to_string(), Wallet::new(address, initial_balance));
+    pub fn create_wallet(&mut self, address: &str,password: &str, initial_balance: u64) {
+        self.wallets.insert(address.to_string(), Wallet::new(address,password,initial_balance));
     }
 
-    pub fn get_wallet(&mut self, address: &str) -> &Wallet{
-        return self.wallets.get(address).unwrap();
+    pub fn get_wallet(&mut self, address: &str, password: &str) -> Option<Wallet>{
+
+        let w = self.wallets.get(address);
+
+        if w.is_some() {
+            if w.unwrap().authenticate(password){
+                return Some(w.unwrap().clone());
+            } else {
+                return None;
+            }
+        } else {
+            return  None;
+        }
+        
     }
 
-    pub fn get_balance(&mut self, address: &str)-> u64{
+    pub fn get_balance(&mut self, address: &str, password: &str)-> u64{
 
-        let wallet = self.get_wallet(address);
+        let wallet = self.get_wallet(address,password);
 
-        return wallet.check_balance()
+        return wallet.unwrap().check_balance()
     }
 }

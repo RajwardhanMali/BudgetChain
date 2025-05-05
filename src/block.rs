@@ -28,25 +28,25 @@ impl Block {
         }
     }
 
-    pub fn display_block(block: &Block) {
-        println!(
-            "  ──────────────────────────\n  Block #{}\n  ──────────────────────────",
-            block.index
-        );
-        println!("  Branch ID   : {}", block.branch_id);
-        println!("  Parent Hash : {}", block.parent_hash.chars().collect::<String>());
-        println!("  Hash        : {}", block.hash.chars().collect::<String>());
-        println!("  Timestamp   : {}", block.timestamp);
-        println!("  Transactions:");
-        for tx in &block.transactions {
-            println!(
-                "    - [{}] {} -> {} | {} coins | Timestamp: {}",
-                tx.tx_id.chars().collect::<String>(),
-                tx.sender,
-                tx.receiver,
-                tx.amount,
-                tx.timestamp
-            );
-        }
-    }
+    // pub fn display_block(block: &Block) {
+    //     println!(
+    //         "  ──────────────────────────\n  Block #{}\n  ──────────────────────────",
+    //         block.index
+    //     );
+    //     println!("  Branch ID   : {}", block.branch_id);
+    //     println!("  Parent Hash : {}", block.parent_hash.chars().collect::<String>());
+    //     println!("  Hash        : {}", block.hash.chars().collect::<String>());
+    //     println!("  Timestamp   : {}", block.timestamp);
+    //     println!("  Transactions:");
+    //     for tx in &block.transactions {
+    //         println!(
+    //             "    - [{}] {} -> {} | {} coins | Timestamp: {}",
+    //             tx.tx_id.chars().collect::<String>(),
+    //             tx.sender,
+    //             tx.receiver,
+    //             tx.amount,
+    //             tx.timestamp
+    //         );
+    //     }
+    // }
 }

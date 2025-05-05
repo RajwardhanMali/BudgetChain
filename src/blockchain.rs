@@ -19,7 +19,7 @@ impl Blockchain {
         let validators = Validators::new();
         let genesis_block = Block::new(0, "0", "MAIN", vec![]);
         let mut wallet_manager = WalletManager::new();
-        wallet_manager.create_wallet("CentralGov", 1_000_000);
+        wallet_manager.create_wallet("CentralGov","abc@123", 1_000_000);
         let mut main_chain = Vec::new();
         main_chain.push(genesis_block);
         Self {
@@ -37,7 +37,7 @@ impl Blockchain {
             return false;
         }
     
-        if sender == "Govt" && !self.validators.contains(receiver) {
+        if sender == "CentralGovt" && !self.validators.contains(receiver) {
             println!("Transaction failed: {} is not an approved validator!", receiver);
             return false;
         }
@@ -101,19 +101,19 @@ impl Blockchain {
         }
     }
 
-    pub fn display_chain(&self) {
-        println!("\n========== Main Chain ==========");
-        for block in &self.main_chain {
-            Block::display_block(block);
-        }
+    // pub fn display_chain(&self) {
+    //     println!("\n========== Main Chain ==========");
+    //     for block in &self.main_chain {
+    //         Block::display_block(block);
+    //     }
 
-        println!("\n========== Branches ==========");
-        for (branch_id, chain) in &self.branches {
-            println!("\n>> Branch: {}", branch_id);
-            for block in chain {
-                Block::display_block(block);
-            }
-        }
-    }
+    //     println!("\n========== Branches ==========");
+    //     for (branch_id, chain) in &self.branches {
+    //         println!("\n>> Branch: {}", branch_id);
+    //         for block in chain {
+    //             Block::display_block(block);
+    //         }
+    //     }
+    // }
 }
 

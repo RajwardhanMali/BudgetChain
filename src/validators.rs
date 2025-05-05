@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-
 use serde::Serialize;
 
 #[derive(Debug,Clone,Serialize)]
@@ -21,6 +20,16 @@ impl Validators {
     pub fn contains(&mut self, agency: &str) -> bool {
         return self.validators.contains(agency)
     }
+
+    pub fn get_pending_request(&self) -> Vec<String> {
+
+        if self.pending_requests.len() > 0 {
+            self.pending_requests.keys().cloned().collect()
+        } else {
+            Vec::new()
+        }
+        
+    }    
 
     pub fn request_validator(&mut self, agency: &str) {
         if self.validators.contains(agency) {
